@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACGI-IT-Infra</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #F9F1EA; --surface: #FFFFFF; --text: #1A1A1A; --muted: #6B7280; --coral: #F29C8D; --coral-hover: #E08575; --border: rgba(0,0,0,0.08); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: var(--text); }
+        nav { display: flex; justify-content: space-between; padding: 15px 40px; align-items: center; background: var(--surface); border-bottom: 1px solid var(--border); }
+        .logo { font-size: 22px; font-weight: 700; color: var(--coral); cursor: pointer; }
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .nav-item { font-weight: 500; cursor: pointer; position: relative; color: var(--text); transition: color 0.2s; }
+        .nav-item:hover { color: var(--coral); }
+        .nav-item.active { color: var(--coral); font-weight: 700; }
+        .dropdown { position: relative; }
+        .dropdown-menu { display: none; position: absolute; top: 100%; right: 0; background: var(--surface); box-shadow: 0 10px 25px rgba(0,0,0,0.05); padding: 10px; border-radius: 8px; border: 1px solid var(--border); min-width: 200px; z-index: 100; }
+        .dropdown:hover .dropdown-menu { display: block; }
+        .dropdown-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: var(--muted); cursor: pointer; border-radius: 4px; margin-bottom: 2px; }
+        .dropdown-item:hover { background: var(--bg); color: var(--coral); }
+        .btn { padding: 8px 16px; border-radius: 99px; border: none; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; }
+        .btn-sm { padding: 4px 10px; font-size: 12px; }
+        .btn-icon { width: 28px; height: 28px; padding: 0; border-radius: 6px; }
+        .btn-coral { background: var(--coral); color: white; }
+        .btn-coral:hover { background: var(--coral-hover); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-outline:hover { border-color: var(--coral); color: var(--coral); }
+        .btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
+
+        /* Add button with hover submenu */
+        .add-btn-wrap { position: relative; }
+        .add-btn-wrap .add-submenu { display: none; position: absolute; top: calc(100% + 6px); right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); min-width: 170px; z-index: 200; padding: 6px; }
+        .add-btn-wrap:hover .add-submenu { display: block; }
+        .add-submenu-item { padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+        .add-submenu-item:hover { background: var(--bg); color: var(--coral); }
+
+        .page { display: none; padding: 40px; max-width: 98%; margin: 0 auto; }
+        .page.active { display: block; }
+        .card { background: var(--surface); padding: 24px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
+        .auth-only, .super-only, .admin-only, .del-only { display: none !important; }
+        .admin-action-bar { display: none !important; }
+        body.is-auth .auth-only { display: block !important; }
+        body.is-auth .public-only { display: none !important; }
+        body.is-superadmin .super-only { display: block !important; }
+        body.is-admin .admin-action-bar, body.is-superadmin .admin-action-bar { display: flex !important; gap: 10px; }
+        body.is-admin .admin-only, body.is-superadmin .admin-only { display: block !important; }
+        body.can-delete .del-only { display: inline-flex !important; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: var(--surface); padding: 30px; border-radius: 12px; width: 500px; max-width: 95%; display: flex; flex-direction: column; max-height: 90vh; overflow-y: auto; }
+        .modal-lg { width: 720px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 500; color: var(--muted); }
+        .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 14px; }
+        .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+        /* Table */
+        .table-container { overflow-x: auto; overflow-y: auto; max-height: 65vh; position: relative; }
+        table { width: max-content; text-align: left; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+        thead { position: sticky; top: 0; z-index: 20; }
+        th { padding: 10px 12px; border-bottom: 2px solid var(--border); background: #F3F4F6; white-space: nowrap; }
+        td { padding: 7px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        .inline-input { padding: 5px 8px; border: 1px solid var(--coral); border-radius: 4px; width: 110px; font-family: inherit; font-size: 12px; }
+        select.inline-input { width: 120px; }
+        .inline-input.formula-cell { background: #f3f4f6; border-color: var(--border); color: var(--muted); cursor: not-allowed; }
+        .inline-input.disabled-cell { background: #e5e7eb; color: #9ca3af; }
+
+        /* Checkbox column */
+        .cb-col { width: 36px; text-align: center; }
+        input[type=checkbox] { cursor: pointer; width: 15px; height: 15px; }
+
+        /* Pagination & search bar */
+        .table-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+        .search-box { padding: 8px 14px; border: 1px solid var(--border); border-radius: 99px; font-size: 13px; width: 240px; outline: none; }
+        .search-box:focus { border-color: var(--coral); }
+        .per-page-select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+        .pagination { display: flex; gap: 4px; align-items: center; margin-top: 12px; }
+        .page-btn { padding: 5px 11px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; font-size: 13px; background: var(--surface); }
+        .page-btn.active { background: var(--coral); color: white; border-color: var(--coral); }
+        .page-btn:hover:not(.active) { border-color: var(--coral); color: var(--coral); }
+
+        /* FY title with edit */
+        .fy-title-wrap { display: flex; align-items: center; gap: 8px; }
+        .fy-title-text { font-size: 20px; font-weight: 700; }
+        .fy-edit-btn { background: none; border: none; cursor: pointer; color: var(--muted); padding: 2px; border-radius: 4px; display: flex; align-items: center; }
+        .fy-edit-btn:hover { color: var(--coral); }
+
+        /* FY selector tabs */
+        .fy-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .fy-tab { padding: 5px 14px; border-radius: 99px; border: 1px solid var(--border); cursor: pointer; font-size: 13px; font-weight: 500; }
+        .fy-tab.active { background: var(--coral); color: white; border-color: var(--coral); }
+        .fy-tab:hover:not(.active) { border-color: var(--coral); color: var(--coral); }
+
+        /* Conflict modal */
+        .conflict-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .conflict-row:last-child { border-bottom: none; }
+        .conflict-badge { font-size: 11px; background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 99px; }
+
+        /* Status badges */
+        .avatar-circle { width: 32px; height: 32px; border-radius: 50%; background: var(--coral); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; overflow: hidden; }
+        .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+        /* Phase 2 — display rule CSS classes (DB-driven, replaces hardcoded status classes) */
+        .highlight-green  { color: #16a34a; font-weight: 600; background: #dcfce7; padding: 2px 8px; border-radius: 4px; display:inline-block; }
+        .highlight-red    { color: #dc2626; font-weight: 600; background: #fee2e2; padding: 2px 8px; border-radius: 4px; display:inline-block; }
+        .highlight-amber  { color: #d97706; font-weight: 600; background: #fef3c7; padding: 2px 8px; border-radius: 4px; display:inline-block; }
+        .highlight-grey   { color: #9ca3af; background: #f3f4f6; padding: 2px 8px; border-radius: 4px; display:inline-block; }
+        .font-italic { font-style: italic; }
+        .font-bold   { font-weight: 700; }
+        .font-normal { font-style: normal; font-weight: 400; }
+        .icon-svg { width: 16px; height: 16px; stroke-width: 2; stroke: currentColor; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* OS Builds table */
+        .os-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .os-table th, .os-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+        .os-table th { background: #f3f4f6; font-weight: 600; }
+
+        /* Bulk delete bar */
+        .bulk-bar { display: none; align-items: center; gap: 10px; padding: 8px 14px; background: #fef3c7; border-radius: 8px; font-size: 13px; margin-bottom: 10px; }
+        .bulk-bar.visible { display: flex; }
+    </style>
+</head>
+<body>
+<nav>
+    <div class="logo" onclick="nav('home')">ACGI-IT-Infra</div>
+    <div class="nav-links">
+        <div class="nav-item nav-tgt" id="nav-home" onclick="nav('home')">Home</div>
+        <div class="dropdown">
+            <div class="nav-item nav-tgt" id="nav-services">Services ▼</div>
+            <div class="dropdown-menu">
+                <div class="dropdown-item" onclick="nav('burnin')">Burn-In Report</div>
+                <div class="dropdown-item" onclick="secureNav('fff')">Server Inventory (FFF)</div>
+                <div class="dropdown-item" onclick="secureNav('fff')">SSL Expiry (FFF)</div>
+                <div class="dropdown-item" onclick="secureNav('fff')">Server Licenses (FFF)</div>
+                <div class="dropdown-item" onclick="secureNav('fff')">Infra SOP (FFF)</div>
+            </div>
+        </div>
+        <div class="nav-item nav-tgt" id="nav-achievements" onclick="nav('achievements')">Achievements</div>
+        <div class="nav-item nav-tgt" id="nav-about" onclick="nav('about')">About</div>
+        <div class="nav-item nav-tgt" id="nav-contact" onclick="nav('contact')">Contact</div>
+        <div class="dropdown super-only">
+            <div class="nav-item nav-tgt" id="nav-admin">Admin Control ▼</div>
+            <div class="dropdown-menu">
+                <div class="dropdown-item" onclick="nav('users')">User Management</div>
+                <div class="dropdown-item" onclick="nav('logs')">Activity Logs</div>
+                <div class="dropdown-item" onclick="nav('os-builds')">OS Version Manager</div>
+            </div>
+        </div>
+        <button class="btn btn-outline public-only" onclick="openModal('login-modal')">Login</button>
+        <div class="dropdown auth-only">
+            <div style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <div class="avatar-circle" id="nav-avatar">U</div>
+                <span id="nav-username" style="font-weight:500;text-transform:capitalize;">Profile</span>
+            </div>
+            <div class="dropdown-menu">
+                <div class="dropdown-item" onclick="openProfile()">My Profile</div>
+
+                <div class="dropdown-item" onclick="nav('vault')">Credential Vault</div>
+                <div class="dropdown-item" onclick="logout()">Logout</div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- PAGES -->
+<div id="page-home" class="page active"><h1>ACGI-IT-Infra Portal</h1><p class="hint" style="margin-top:8px;">Hardware analytics and infrastructure management.</p></div>
+<div id="page-about" class="page"><h1>About ACGI-IT-Infra</h1><p class="hint" style="margin-top:8px;">IT Infrastructure Operations and Validation details.</p></div>
+<div id="page-contact" class="page"><h1>Contact Support</h1><p class="hint" style="margin-top:8px;">Reach out to the IT infra team.</p></div>
+<div id="page-achievements" class="page"><h1>IT Achievements (FFFM)</h1><p class="hint" style="margin-top:8px;">Public showcase coming soon.</p></div>
+<div id="page-fff" class="page"><h1>Confidential Module (FFF)</h1><p class="hint" style="margin-top:8px;">Access restricted. Please log in.</p></div>
+
+<!-- USER MANAGEMENT -->
+<div id="page-users" class="page">
+    <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+        <h2>RBAC User Management</h2>
+        <button class="btn btn-coral" onclick="openUserModal()"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0M6 21v-2a4 4 0 0 1 4-4h4c.348 0 .686.045 1.008.128M16 19h6M19 16v6"/></svg> Create User</button>
+    </div>
+    <div class="card table-container">
+        <table style="width:100%">
+            <tr><th>Status</th><th>Username</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Can Delete</th><th>Actions</th></tr>
+            <tbody id="user-list"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ACTIVITY LOGS -->
+<div id="page-logs" class="page">
+    <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+        <h2>System Activity Logs</h2>
+        <div style="display:flex;gap:10px;">
+            <button class="btn btn-outline btn-danger btn-sm" onclick="purgeLogs(7)">Purge &gt; 7 Days</button>
+            <button class="btn btn-outline btn-danger btn-sm" onclick="purgeLogs(30)">Purge &gt; 30 Days</button>
+        </div>
+    </div>
+    <div class="card table-container" style="max-height:60vh;">
+        <table style="width:100%">
+            <tr><th style="width:200px">Timestamp</th><th style="width:150px">User</th><th>Action</th></tr>
+            <tbody id="logs-list"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- VAULT -->
+<div id="page-vault" class="page">
+    <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+        <h2>My Credential Vault</h2>
+        <button class="btn btn-coral" onclick="openModal('add-vault-modal')"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 5l0 14M5 12l14 0"/></svg> Add Credential</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;" id="vault-list"></div>
+</div>
+
+<!-- OS BUILDS MANAGER (SuperAdmin) -->
+<div id="page-os-builds" class="page">
+    <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+        <div>
+            <h2>OS Version Manager</h2>
+            <p class="hint" style="margin-top:4px;">Define all valid OS Name + Release + Build ID combinations. These drive all OS dropdowns portal-wide.</p>
+        </div>
+        <button class="btn btn-coral" onclick="openModal('add-os-modal')"><svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 5l0 14M5 12l14 0"/></svg> Add OS Build</button>
+    </div>
+    <div class="card">
+        <table class="os-table">
+            <thead><tr><th>OS Name</th><th>OS Release</th><th>Build ID</th><th style="width:60px">Delete</th></tr></thead>
+            <tbody id="os-builds-list"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- BURN-IN PAGE -->
+<div id="page-burnin" class="page">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+        <div>
+            <div class="fy-title-wrap">
+                <span class="fy-title-text" id="fy-title-text">Client Machine Analytics</span>
+                <button class="fy-edit-btn admin-only" title="Rename this FY" onclick="openFyRenameModal()">
+                    <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.828 2.828 0 1 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>
+                </button>
+            </div>
+            <div class="fy-tabs" id="fy-tabs" style="margin-top:10px;"></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <!-- Public: PDF only -->
+            <button class="btn btn-outline public-only" onclick="downloadPdf()">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 11l5 5l5-5M12 4l0 12"/></svg> Export PDF
+            </button>
+            <!-- Admin/SuperAdmin: both options -->
+            <div class="dropdown admin-only">
+                <button class="btn btn-outline">
+                    <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 11l5 5l5-5M12 4l0 12"/></svg> Export ▼
+                </button>
+                <div class="dropdown-menu" style="min-width:140px;">
+                    <div class="dropdown-item" onclick="downloadXlsx()">Export XLSX</div>
+                    <div class="dropdown-item" onclick="downloadPdf()">Export PDF</div>
+                </div>
+            </div>
+            <div class="admin-action-bar">
+                <input type="file" id="upload-file" style="display:none;" accept=".xlsx" onchange="uploadXlsx(this)">
+                <button class="btn btn-outline" onclick="document.getElementById('upload-file').click()">
+                    <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 9l5-5l5 5M12 4l0 12"/></svg> Upload
+                </button>
+                <!-- Add button with submenu -->
+                <div class="add-btn-wrap">
+                    <button class="btn btn-coral">
+                        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 5l0 14M5 12l14 0"/></svg> Add
+                    </button>
+                    <div class="add-submenu">
+                        <div class="add-submenu-item" onclick="openEditor(null)">
+                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/></svg>
+                            Add New Row
+                        </div>
+                        <div class="add-submenu-item" onclick="openAddFyModal()">
+                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7zM16 3v4M8 3v4M4 11h16"/></svg>
+                            Add New FY
+                        </div>
+                        <div class="add-submenu-item super-only" onclick="openPresetValuesModal()">
+                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+                            Manage Preset Values
+                        </div>
+                        <div class="add-submenu-item super-only" onclick="openLinkedRulesModal()">
+                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M5 9l4 4l4-4M5 15l4-4l4 4M17 4v16"/></svg>
+                            Manage Linked Rules
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk delete bar -->
+    <div class="bulk-bar" id="bulk-bar">
+        <span id="bulk-count">0 selected</span>
+        <button class="btn btn-danger btn-sm del-only" onclick="bulkDelete()">Delete Selected</button>
+        <button class="btn btn-outline btn-sm" onclick="clearSelection()">Clear</button>
+    </div>
+
+    <!-- Search + pagination controls -->
+    <div class="table-controls">
+        <input class="search-box" type="text" id="search-box" placeholder="Search by serial, manufacturer, technician..." oninput="debounceSearch()">
+        <select class="per-page-select" id="per-page-select" onchange="changePerPage(this.value)">
+            <option value="10">10 per page</option>
+            <option value="50" selected>50 per page</option>
+            <option value="100">100 per page</option>
+        </select>
+        <span id="total-label" style="font-size:13px;color:var(--muted);"></span>
+    </div>
+
+    <div class="card table-container">
+        <table id="burn-in-table">
+            <thead><tr id="burn-in-head"></tr></thead>
+            <tbody id="burn-in-body"></tbody>
+        </table>
+    </div>
+    <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- ════════════════════════════════════
+     MODALS
+════════════════════════════════════ -->
+
+<!-- Login -->
+<div class="modal-overlay" id="login-modal">
+    <div class="modal">
+        <h3>Portal Login</h3>
+        <div class="input-group" style="margin-top:15px;"><label>Username</label><input type="text" id="login-user" autocomplete="off" oninput="this.value=this.value.toLowerCase()"></div>
+        <div class="input-group"><label>Password</label><input type="password" id="login-pass" autocomplete="new-password"></div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+            <button class="btn btn-outline" onclick="closeModals()">Cancel</button>
+            <button class="btn btn-coral" onclick="login()">Login</button>
+        </div>
+    </div>
+</div>
+
+<!-- Force Reset -->
+<div class="modal-overlay" id="force-reset-modal">
+    <div class="modal">
+        <h3 style="color:#dc2626;">Password Reset Required</h3>
+        <p class="hint" style="margin-bottom:15px;">Your temporary password has expired. Set a permanent password now.</p>
+        <div class="input-group"><label>New Password</label><input type="password" id="reset-new-pass" autocomplete="new-password"><p class="hint">Min 8 chars, 1 number, 1 special character.</p></div>
+        <div style="text-align:right;"><button class="btn btn-coral" onclick="submitForcedReset()">Update & Login</button></div>
+    </div>
+</div>
+
+<!-- My Profile -->
+<div class="modal-overlay" id="my-profile-modal">
+    <div class="modal">
+        <h3>My Profile</h3>
+        <div style="display:flex;gap:15px;margin:15px 0;">
+            <div class="avatar-circle" style="width:64px;height:64px;font-size:24px;" id="profile-avatar-preview">U</div>
+            <div class="input-group" style="flex:1;"><label>Profile Picture (Optional)</label><input type="file" accept="image/*" onchange="encodeImageFileAsURL(this)"></div>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <div class="input-group" style="flex:1;"><label>First Name</label><input type="text" id="p-first"></div>
+            <div class="input-group" style="flex:1;"><label>Last Name</label><input type="text" id="p-last"></div>
+        </div>
+        <div class="input-group"><label>Email</label><input type="email" id="p-email"></div>
+        <div class="input-group"><label>Phone</label><input type="text" id="p-phone"></div>
+        <div class="input-group"><label>Update Password (Optional)</label><input type="password" id="p-pass" autocomplete="new-password"></div>
+        <div style="text-align:right;">
+            <button class="btn btn-outline" onclick="closeModals()">Cancel</button>
+            <button class="btn btn-coral" onclick="saveProfile()">Save Profile</button>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit User -->
+<div class="modal-overlay" id="add-user-modal">
+    <div class="modal">
+        <h3 id="u-modal-title">Create User</h3>
+        <input type="hidden" id="u-id">
+        <div class="input-group" style="margin-top:10px;">
+            <label>Username</label>
+            <input type="text" id="u-name" autocomplete="off" oninput="this.value=this.value.toLowerCase()">
+            <p class="hint">Forced lowercase.</p>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <div class="input-group" style="flex:1;"><label>First Name</label><input type="text" id="u-first"></div>
+            <div class="input-group" style="flex:1;"><label>Last Name</label><input type="text" id="u-last"></div>
+        </div>
+        <div class="input-group"><label>Email</label><input type="email" id="u-email"></div>
+        <div class="input-group"><label>Phone (Optional)</label><input type="text" id="u-phone"></div>
+        <div class="input-group" id="u-pass-group">
+            <label>Temp Password</label><input type="password" id="u-pass" autocomplete="new-password">
+            <p class="hint">Valid for 72 hours. Forced reset on first login.</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+            <div class="input-group" style="flex:1;"><label>Role</label>
+                <select id="u-role"><option value="viewer">Viewer (Observer)</option><option value="admin">Admin</option><option value="superadmin">SuperAdmin</option></select>
+            </div>
+            <div class="input-group" style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+                <input type="checkbox" id="u-can-delete" style="width:auto;"><label style="margin:0;">Can Delete Records</label>
+            </div>
+        </div>
+        <div style="text-align:right;">
+            <button class="btn btn-outline" onclick="closeModals()">Cancel</button>
+            <button class="btn btn-coral" onclick="saveUser()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════
+     MODAL: MANAGE PRESET VALUES (SuperAdmin, BIT-scoped)
+════════════════════════════════════ -->
+<div class="modal-overlay" id="preset-values-modal">
+    <div class="modal" style="width:680px;max-width:97%;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div>
+                <h3>Manage Preset Values</h3>
+                <p class="hint" style="margin-top:3px;" id="preset-modal-context"></p>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="closeModals()">Close</button>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;margin-top:14px;">
+            <select id="preset-col-select" style="flex:1;min-width:180px;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" onchange="loadPresetList()">
+                <option value="">Select column...</option>
+            </select>
+            <input type="text" id="preset-value-input" placeholder="New value..." style="flex:2;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+            <button class="btn btn-coral" onclick="addPresetValue()">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 5l0 14M5 12l14 0"/></svg> Add
+            </button>
+        </div>
+        <div id="preset-value-list" style="max-height:340px;overflow-y:auto;"></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════
+     MODAL: MANAGE LINKED COLUMN RULES (SuperAdmin, BIT-scoped)
+════════════════════════════════════ -->
+<div class="modal-overlay" id="linked-rules-modal">
+    <div class="modal" style="width:680px;max-width:97%;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div>
+                <h3>Manage Linked Column Rules</h3>
+                <p class="hint" style="margin-top:3px;" id="linked-modal-context"></p>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-coral btn-sm" onclick="openRuleBuilder()">
+                    <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 5l0 14M5 12l14 0"/></svg> New Rule
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="closeModals()">Close</button>
+            </div>
+        </div>
+        <p class="hint" style="margin-bottom:14px;">IF/THEN rules that auto-fill column values when a condition is met. Operators: equals, not_equals, contains. Rules run top to bottom — first match wins per column.</p>
+        <div id="linked-rules-list" style="max-height:400px;overflow-y:auto;margin-top:4px;"></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════
+     MODAL: RULE BUILDER (opens on top of linked-rules-modal)
+════════════════════════════════════ -->
+<div class="modal-overlay" id="rule-builder-modal">
+    <div class="modal" style="width:820px;max-width:97%;max-height:92vh;overflow-y:auto;">
+        <h3 style="margin-bottom:16px;">Create Linked Column Rule</h3>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:4px;">
+            <div class="input-group" style="flex:2;min-width:200px;">
+                <label>Rule Name</label>
+                <input type="text" id="rb-name" placeholder="e.g. CPU Test No → set Load and Temp to NA">
+            </div>
+            <div class="input-group" style="flex:0 0 100px;">
+                <label>Priority <span class="hint" style="display:inline;">(higher first)</span></label>
+                <input type="number" id="rb-priority" value="0" min="0" max="100">
+            </div>
+        </div>
+
+        <!-- IF CONDITIONS — ADO style table -->
+        <div style="margin-top:12px;margin-bottom:6px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.05em;">IF CONDITIONS</div>
+        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:4px;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                    <tr style="background:#f3f4f6;">
+                        <th style="width:28px;padding:8px 6px;"></th>
+                        <th style="padding:8px 10px;font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;">And/Or</th>
+                        <th style="padding:8px 10px;font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;">Field</th>
+                        <th style="padding:8px 10px;font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;">Operator</th>
+                        <th style="padding:8px 10px;font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;">Value</th>
+                        <th style="width:32px;padding:8px 6px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="rb-conditions"></tbody>
+            </table>
+        </div>
+        <button class="btn btn-outline btn-sm" style="margin-bottom:16px;" onclick="addRbCondition()">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 5l0 14M5 12l14 0"/></svg> Add Clause
+        </button>
+
+        <!-- THEN SET -->
+        <div style="margin-bottom:6px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.05em;">THEN SET</div>
+        <div id="rb-actions"></div>
+        <button class="btn btn-outline btn-sm" style="margin-top:4px;margin-bottom:16px;" onclick="addRbAction()">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 5l0 14M5 12l14 0"/></svg> Add Action
+        </button>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;">
+            <button class="btn btn-outline" onclick="closeRuleBuilder()">Cancel</button>
+            <button class="btn btn-coral" onclick="saveRule()">Save Rule</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add OS Build (SuperAdmin) -->
+<div class="modal-overlay" id="add-os-modal">
+    <div class="modal">
+        <h3>Add OS Build Entry</h3>
+        <p class="hint" style="margin-bottom:15px;">Define a new valid OS combination. Once added, it appears in all OS dropdowns immediately.</p>
+        <div class="input-group"><label>OS Name</label><input type="text" id="os-name" placeholder="e.g. Windows 12"></div>
+        <div class="input-group"><label>OS Release</label><input type="text" id="os-release" placeholder="e.g. 24H1"></div>
+        <div class="input-group"><label>Build ID</label><input type="text" id="os-build" placeholder="e.g. Win12-Build01"></div>
+        <div style="text-align:right;">
+            <button class="btn btn-outline" onclick="closeModals()">Cancel</button>
+            <button class="btn btn-coral" onclick="saveOsBuild()">Add Entry</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add FY Modal -->
+<div class="modal-overlay" id="add-fy-modal">
+    <div class="modal">
+        <h3>Add New Fiscal Year</h3>
+        <div class="input-group" style="margin-top:15px;">
+            <label>FY Key (internal ID)</label>
+            <input type="text" id="new-fy-key" placeholder="e.g. FY-2728">
+            <p class="hint">Used internally. Cannot be changed later.</p>
+        </div>
+        <div class="input-group">
+            <label>FY Display Label</label>
+            <input type="text" id="new-fy-label" placeholder="e.g. FY-2728">
+            <p class="hint">Shown in the portal header and tabs.</p>
+        </div>
+        <div style="text-align:right;">
+            <button class="btn btn-outline" onclick="closeModals()">Cancel</button>
+            <button class="btn btn-coral" onclick="saveFy()">Create FY</button>
+        </div>
+    </div>
+</div>
+
+<!-- Rename FY Modal -->
+<div class="modal-overlay" id="rename-fy-modal">
+    <div class="modal">
+        <h3>Rename Fiscal Year</h3>
+        <div class="input-group" style="margin-top:15px;">
+            <label>New Display Label</label>
+            <input type="text" id="rename-fy-label" placeholder="e.g. FY-2627 (Q1 Refresh)">
+        </div>
+        <div style="text-align:right;">
+            <button class="btn btn-outline" onclick="closeModals()">Cancel</button>
+            <button class="btn btn-coral" onclick="saveFyRename()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Vault -->
+<div class="modal-overlay" id="add-vault-modal">
+    <div class="modal">
+        <h3>Add to Vault</h3>
+        <div class="input-group"><label>App Name</label><input type="text" id="v-app"></div>
+        <div class="input-group"><label>Portal URL</label><input type="text" id="v-url"></div>
+        <div class="input-group"><label>Username</label><input type="text" id="v-user" autocomplete="off"></div>
+        <div class="input-group"><label>Password</label><input type="password" id="v-pass" autocomplete="new-password"></div>
+        <div style="text-align:right;">
+            <button class="btn btn-outline" onclick="closeModals()">Cancel</button>
+            <button class="btn btn-coral" onclick="saveVault()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Conflict Modal -->
+<div class="modal-overlay" id="conflict-modal">
+    <div class="modal modal-lg">
+        <h3>Upload Summary</h3>
+        <p id="conflict-summary" class="hint" style="margin:10px 0 15px;"></p>
+        <div id="conflict-list" style="max-height:300px;overflow-y:auto;margin-bottom:15px;"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" onclick="selectAllConflicts(true)">Select All</button>
+            <button class="btn btn-outline btn-sm" onclick="selectAllConflicts(false)">Deselect All</button>
+            <button class="btn btn-outline" onclick="closeModals(); loadBurnInData();">Skip All & Close</button>
+            <button class="btn btn-coral" onclick="forceInsertSelected()">Insert Selected</button>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════ -->
+<script>
+    const API = "http://" + window.location.host;
+    let BURN_IN_DATA = [];
+    let SYSTEM_LOOKUPS = {};
+    let OS_BUILDS = [];
+    let MY_PROFILE = {};
+    let USER_LIST_CACHE = [];
+    let FY_LIST = [];
+    let CURRENT_FY = 'FY-2627';
+    let IDLE_TIMER;
+    let SEARCH_TIMER;
+    let CURRENT_PAGE = 1;
+    let CURRENT_PER_PAGE = 50;
+    let TOTAL_ROWS = 0;
+    let PENDING_CONFLICTS = [];
+    let SELECTED_IDS = new Set();
+
+    const COLUMNS = ["Report ID","Date Performed","Technician","Manufacturer","Model Number","Serial Number","CPU Tier","CPU Generation","CPU Architecture","RAM Brand","RAM Size (GB)","RAM Freq (MHz)","RAM Type","RAM Config","Storage Brand","Storage Size","Storage Type","GPU Type","GPU Model","OS Version","OS Release","OS Build ID","CPU Test","RAM Test","Storage Test","Video Test","2D Graphics","3D Graphics","Test Combination","CPU Load %","RAM Load %","Storage Load %","GPU Load %","CPU Max °C","RAM Max °C","SSD Max °C","GPU Max °C","Duration (hrs)","Result","Is Retest","Retest Attempt","Retest Reason","Notes"];
+    const FORMULA_COLS = new Set(["Report ID","OS Build ID","Test Combination","CPU Load %","RAM Load %","Storage Load %","GPU Load %","CPU Max °C","RAM Max °C","SSD Max °C","GPU Max °C"]);
+
+    // Phase 2 — BASE_ARRAYS removed. All dropdown values come from DB via preset_values table.
+    let CURRENT_TEMPLATE_ID = null;  // resolved at init from /api/projects
+    let LINKED_RULES = [];           // fetched from /api/template/<id>/linked_rules
+    let DISPLAY_RULES = [];          // fetched from /api/template/<id>/display_rules
+
+    const SVG_FLOPPY = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M6 4h10l4 4v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M16 4v6H8V4"/><path d="M8 14h8v6H8z"/></svg>`;
+    const SVG_CANCEL = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+    const SVG_PENCIL = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.828 2.828 0 1 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>`;
+    const SVG_TRASH  = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>`;
+    const SVG_POWER  = `<svg class="icon-svg" viewBox="0 0 24 24"><path d="M7 6a7.75 7.75 0 1 0 10 0M12 4v8"/></svg>`;
+
+    // ── INIT ──────────────────────────────────────
+    async function init() {
+        // Resolve BIT template_id first — dropdowns and rules depend on it
+        try {
+            const projRes = await fetch(API + "/api/projects");
+            const projects = await projRes.json();
+            const bit = projects.find(p => p.project_name === 'BIT');
+            CURRENT_TEMPLATE_ID = bit ? bit.template_id : null;
+        } catch(e) { CURRENT_TEMPLATE_ID = null; }
+
+        await Promise.all([
+            fetchLookups(),
+            fetchOsBuilds(),
+            fetchFiscalYears(),
+            fetchLinkedRules(),
+            fetchDisplayRules()
+        ]);
+
+        // Build table header with checkbox
+        document.getElementById('burn-in-head').innerHTML =
+            '<th class="cb-col del-only"><input type="checkbox" id="select-all-cb" onchange="toggleSelectAll(this.checked)"></th>' +
+            COLUMNS.map(c => `<th>${c}</th>`).join('') +
+            '<th class="admin-only" style="min-width:80px;text-align:center;">Actions</th>';
+
+        document.onmousemove = resetIdle;
+        document.onkeypress = resetIdle;
+
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const res = await fetch(API + "/api/auth/me", { headers: { "X-Auth-Token": token } });
+                const data = await res.json();
+                if (data.ok) { applyAuth(data); } else { logout(); }
+            } catch(e) { logout(); }
+        }
+        nav('home');
+    }
+
+    // ── LOOKUPS ───────────────────────────────────
+    async function fetchLookups() {
+        // Phase 2: SYSTEM_LOOKUPS is built from two sources:
+        //   1. preset_values table (template-scoped dropdown values)
+        //   2. lookups table (Technician only — managed separately)
+        SYSTEM_LOOKUPS = {};
+
+        // Technicians from lookups table
+        try {
+            const res = await fetch(API + "/api/lookups");
+            const rows = await res.json();
+            SYSTEM_LOOKUPS['Technician'] = rows.filter(r => r.category === 'Technician');
+        } catch(e) { SYSTEM_LOOKUPS['Technician'] = []; }
+
+        // Preset values from template
+        if (CURRENT_TEMPLATE_ID) {
+            try {
+                const res = await fetch(API + `/api/template/${CURRENT_TEMPLATE_ID}/preset_values`);
+                const pvRows = await res.json();
+                pvRows.forEach(pv => {
+                    if (!SYSTEM_LOOKUPS[pv.column_name]) SYSTEM_LOOKUPS[pv.column_name] = [];
+                    SYSTEM_LOOKUPS[pv.column_name].push({ id: pv.id, lookup_key: pv.value });
+                });
+            } catch(e) { /* no preset values yet — dropdowns will be empty until SuperAdmin adds them */ }
+        }
+    }
+
+    async function fetchOsBuilds() {
+        const res = await fetch(API + "/api/os_builds");
+        OS_BUILDS = await res.json();
+        const names = [...new Set(OS_BUILDS.map(o => o.os_name))];
+        SYSTEM_LOOKUPS['OS Version'] = names.map(n => ({ lookup_key: n }));
+    }
+
+    function getOsReleases(osName) {
+        return OS_BUILDS.filter(o => o.os_name === osName).map(o => o.os_release);
+    }
+
+    // ── PHASE 2: LINKED RULES ENGINE ─────────────
+    async function fetchLinkedRules() {
+        if (!CURRENT_TEMPLATE_ID) { LINKED_RULES = []; return; }
+        try {
+            const res = await fetch(API + `/api/template/${CURRENT_TEMPLATE_ID}/linked_rules`);
+            LINKED_RULES = await res.json();
+        } catch(e) { LINKED_RULES = []; }
+    }
+
+    // Called from inline editor on any field change.
+    // Evaluates LINKED_RULES and auto-fills matched THEN columns (first-match wins per column).
+    function evaluateRules() {
+        if (!LINKED_RULES.length) return;
+        const snapshot = {};
+        COLUMNS.forEach(c => {
+            const el = document.getElementById(`i-${c}`);
+            if (el) snapshot[c] = el.value;
+        });
+        const applied = {};
+        for (const rule of LINKED_RULES) {
+            if (applied[rule.then_column]) continue; // first-match wins
+            const fieldVal = (snapshot[rule.if_column] || '').trim();
+            const condVal  = (rule.if_value || '').trim();
+            const op = rule.operator || 'equals';
+            let match = false;
+            if (op === 'equals')     match = fieldVal.toLowerCase() === condVal.toLowerCase();
+            if (op === 'not_equals') match = fieldVal.toLowerCase() !== condVal.toLowerCase();
+            if (op === 'contains')   match = fieldVal.toLowerCase().includes(condVal.toLowerCase());
+            if (match) {
+                const el = document.getElementById(`i-${rule.then_column}`);
+                if (!el) continue;
+                if (el.tagName === 'SELECT') {
+                    const exists = Array.from(el.options).some(o => o.value === rule.then_value);
+                    if (exists) { el.value = rule.then_value; applied[rule.then_column] = true; }
+                } else {
+                    el.value = rule.then_value;
+                    applied[rule.then_column] = true;
+                }
+            }
+        }
+    }
+
+    // ── PHASE 2: DISPLAY RULES ENGINE ────────────
+    async function fetchDisplayRules() {
+        if (!CURRENT_TEMPLATE_ID) { DISPLAY_RULES = []; return; }
+        try {
+            const res = await fetch(API + `/api/template/${CURRENT_TEMPLATE_ID}/display_rules`);
+            DISPLAY_RULES = await res.json();
+        } catch(e) { DISPLAY_RULES = []; }
+    }
+
+    // Returns CSS class string for a cell based on DISPLAY_RULES. Empty string = no match.
+    function getCellClass(colName, cellValue) {
+        for (const rule of DISPLAY_RULES) {
+            if (rule.column_name !== colName) continue;
+            const val  = String(cellValue === null || cellValue === undefined ? '' : cellValue);
+            const rval = String(rule.condition_value || '');
+            let match = false;
+            if (rule.operator === 'equals')     match = val === rval;
+            if (rule.operator === 'not_equals') match = val !== rval;
+            if (rule.operator === 'contains')   match = val.includes(rval);
+            if (rule.operator === 'gte')        match = parseFloat(val) >= parseFloat(rval);
+            if (rule.operator === 'lte')        match = parseFloat(val) <= parseFloat(rval);
+            if (match) {
+                const colorClass = rule.highlight_color ? `highlight-${rule.highlight_color}` : '';
+                const fontClass  = rule.font_style && rule.font_style !== 'normal' ? `font-${rule.font_style}` : '';
+                return [colorClass, fontClass].filter(Boolean).join(' ');
+            }
+        }
+        return '';
+    }
+
+    function getOsBuildId(osName, osRelease) {
+        const match = OS_BUILDS.find(o => o.os_name === osName && o.os_release === osRelease);
+        return match ? match.build_id : 'Manual Entry';
+    }
+
+    // ── FISCAL YEARS ──────────────────────────────
+    async function fetchFiscalYears() {
+        const res = await fetch(API + "/api/fiscal_years");
+        FY_LIST = await res.json();
+        if (FY_LIST.length > 0 && !FY_LIST.find(f => f.fy_key === CURRENT_FY)) {
+            CURRENT_FY = FY_LIST[0].fy_key;
+        }
+        renderFyTabs();
+        updateFyTitle();
+    }
+
+    function renderFyTabs() {
+        document.getElementById('fy-tabs').innerHTML = FY_LIST.map(f =>
+            `<div class="fy-tab ${f.fy_key === CURRENT_FY ? 'active' : ''}" onclick="switchFy('${f.fy_key}')">${f.fy_label}</div>`
+        ).join('');
+    }
+
+    function updateFyTitle() {
+        const fy = FY_LIST.find(f => f.fy_key === CURRENT_FY);
+        document.getElementById('fy-title-text').textContent = `Client Machine Analytics — ${fy ? fy.fy_label : CURRENT_FY}`;
+    }
+
+    function switchFy(fyKey) {
+        CURRENT_FY = fyKey;
+        CURRENT_PAGE = 1;
+        renderFyTabs();
+        updateFyTitle();
+        loadBurnInData();
+    }
+
+    function openAddFyModal() { openModal('add-fy-modal'); }
+    function openFyRenameModal() {
+        const fy = FY_LIST.find(f => f.fy_key === CURRENT_FY);
+        document.getElementById('rename-fy-label').value = fy ? fy.fy_label : '';
+        openModal('rename-fy-modal');
+    }
+
+    async function saveFy() {
+        const key = document.getElementById('new-fy-key').value.trim();
+        const label = document.getElementById('new-fy-label').value.trim() || key;
+        if (!key) { alert('FY Key is required.'); return; }
+        const res = await fetch(API + "/api/superadmin/fiscal_years", {
+            method: "POST", headers: { "Content-Type": "application/json", "X-Auth-Token": localStorage.getItem("token") },
+            body: JSON.stringify({ fy_key: key, fy_label: label })
+        });
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        closeModals();
+        await fetchFiscalYears();
+        switchFy(key);
+    }
+
+    async function saveFyRename() {
+        const label = document.getElementById('rename-fy-label').value.trim();
+        if (!label) { alert('Label cannot be empty.'); return; }
+        await fetch(API + `/api/superadmin/fiscal_years/${CURRENT_FY}`, {
+            method: "PUT", headers: { "Content-Type": "application/json", "X-Auth-Token": localStorage.getItem("token") },
+            body: JSON.stringify({ fy_label: label })
+        });
+        closeModals();
+        await fetchFiscalYears();
+        updateFyTitle();
+    }
+
+    // ── NAV ───────────────────────────────────────
+    function nav(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page-' + pageId).classList.add('active');
+        document.querySelectorAll('.nav-tgt').forEach(n => n.classList.remove('active'));
+        const map = { home:'nav-home', burnin:'nav-services', achievements:'nav-achievements', about:'nav-about', contact:'nav-contact', users:'nav-admin', logs:'nav-admin', 'os-builds':'nav-admin' };
+        if (map[pageId]) document.getElementById(map[pageId])?.classList.add('active');
+        if (pageId === 'burnin') loadBurnInData();
+        if (pageId === 'vault') loadVault();
+        if (pageId === 'users') loadUsers();
+        if (pageId === 'logs') loadLogs();
+        if (pageId === 'os-builds') loadOsBuilds();
+    }
+
+    function secureNav(pageId) {
+        document.body.classList.contains('is-auth') ? nav(pageId) : (openModal('login-modal'));
+    }
+
+    function openModal(id) {
+        document.querySelectorAll(`#${id} input`).forEach(i => { if (i.type !== 'file' && i.type !== 'checkbox') i.value = ''; });
+        document.getElementById(id).classList.add('active');
+    }
+    function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active')); }
+
+    // ── AUTH ──────────────────────────────────────
+    async function login() {
+        const user = document.getElementById('login-user').value;
+        const res = await fetch(API + "/api/auth/login", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: user, password: document.getElementById('login-pass').value })
+        });
+        const data = await res.json();
+        if (data.requires_reset) {
+            closeModals();
+            document.getElementById('force-reset-modal').setAttribute('data-user', data.username);
+            openModal('force-reset-modal');
+        } else if (data.ok) {
+            localStorage.setItem("token", data.token);
+            data.username = data.username || user;
+            applyAuth(data);
+            closeModals();
+            nav('burnin');
+        } else { alert(data.error || "Login failed."); }
+    }
+
+    async function submitForcedReset() {
+        const user = document.getElementById('force-reset-modal').getAttribute('data-user');
+        const pass = document.getElementById('reset-new-pass').value;
+        if (!/^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/.test(pass)) {
+            alert("Min 8 chars, 1 number, 1 special char."); return;
+        }
+        const res = await fetch(API + "/api/auth/force_reset", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: user, new_password: pass })
+        });
+        if ((await res.json()).ok) { closeModals(); openModal('login-modal'); }
+    }
+
+    function applyAuth(data) {
+        MY_PROFILE = data;
+        document.body.className = `is-auth is-${data.role} ${data.can_delete ? 'can-delete' : ''}`;
+        document.getElementById('nav-username').innerText = data.username;
+        document.getElementById('nav-avatar').innerHTML = data.avatar
+            ? `<img src="${data.avatar}">` : data.username.charAt(0).toUpperCase();
+        resetIdle();
+        // Fetch rules now that we have a valid token (rules need auth)
+        fetchRules();
+    }
+
+    function logout() { localStorage.clear(); document.body.className = ''; clearTimeout(IDLE_TIMER); nav('home'); }
+    function resetIdle() {
+        clearTimeout(IDLE_TIMER);
+        if (document.body.classList.contains('is-auth')) {
+            IDLE_TIMER = setTimeout(() => { alert("Session expired."); logout(); }, 30 * 60 * 1000);
+        }
+    }
+
+    // ── PROFILE ───────────────────────────────────
+    let currentBase64Avatar = null;
+    function encodeImageFileAsURL(el) {
+        const r = new FileReader();
+        r.onloadend = () => { currentBase64Avatar = r.result; document.getElementById('profile-avatar-preview').innerHTML = `<img src="${currentBase64Avatar}">`; };
+        if (el.files[0]) r.readAsDataURL(el.files[0]);
+    }
+    function openProfile() {
+        openModal('my-profile-modal');
+        document.getElementById('p-first').value = MY_PROFILE.first_name || '';
+        document.getElementById('p-last').value = MY_PROFILE.last_name || '';
+        document.getElementById('p-email').value = MY_PROFILE.email || '';
+        document.getElementById('p-phone').value = MY_PROFILE.phone || '';
+        if (MY_PROFILE.avatar) { currentBase64Avatar = MY_PROFILE.avatar; document.getElementById('profile-avatar-preview').innerHTML = `<img src="${MY_PROFILE.avatar}">`; }
+        else { document.getElementById('profile-avatar-preview').innerHTML = MY_PROFILE.username.charAt(0).toUpperCase(); }
+    }
+    async function saveProfile() {
+        await fetch(API + "/api/auth/update_profile", {
+            method: "POST", headers: { "Content-Type": "application/json", "X-Auth-Token": localStorage.getItem("token") },
+            body: JSON.stringify({ first_name: document.getElementById('p-first').value, last_name: document.getElementById('p-last').value, email: document.getElementById('p-email').value, phone: document.getElementById('p-phone').value, new_password: document.getElementById('p-pass').value, avatar: currentBase64Avatar })
+        });
+        alert("Profile updated."); closeModals(); location.reload();
+    }
+
+    // ── OS BUILDS ─────────────────────────────────
+    async function loadOsBuilds() {
+        const res = await fetch(API + "/api/os_builds");
+        OS_BUILDS = await res.json();
+        document.getElementById('os-builds-list').innerHTML = OS_BUILDS.map(o =>
+            `<tr><td>${o.os_name}</td><td>${o.os_release}</td><td><code>${o.build_id}</code></td>
+             <td><button class="btn btn-danger btn-sm" onclick="deleteOsBuild(${o.id})">Delete</button></td></tr>`
+        ).join('');
+    }
+
+    async function saveOsBuild() {
+        const res = await fetch(API + "/api/superadmin/os_builds", {
+            method: "POST", headers: { "Content-Type": "application/json", "X-Auth-Token": localStorage.getItem("token") },
+            body: JSON.stringify({ os_name: document.getElementById('os-name').value.trim(), os_release: document.getElementById('os-release').value.trim(), build_id: document.getElementById('os-build').value.trim() })
+        });
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        closeModals(); await fetchOsBuilds(); loadOsBuilds();
+    }
+
+    async function deleteOsBuild(id) {
+        if (!confirm("Delete this OS build entry?")) return;
+        await fetch(API + `/api/superadmin/os_builds/${id}`, { method: "DELETE", headers: { "X-Auth-Token": localStorage.getItem("token") } });
+        await fetchOsBuilds(); loadOsBuilds();
+    }
+
+    // ── PHASE 2: PRESET VALUES MODAL (BIT-scoped) ─
+    const NON_PRESET_COLS = new Set(["Report ID", "OS Build ID", "Test Combination",
+        "CPU Load %", "RAM Load %", "Storage Load %", "GPU Load %",
+        "CPU Max °C", "RAM Max °C", "SSD Max °C", "GPU Max °C",
+        "OS Version", "OS Release"]);
+
+    function openPresetValuesModal() {
+        document.getElementById('preset-modal-context').textContent =
+            `BIT template — ${COLUMNS.filter(c => !NON_PRESET_COLS.has(c)).length} eligible columns`;
+        populatePresetColSelect();
+        document.getElementById('preset-values-modal').classList.add('active');
+        const sel = document.getElementById('preset-col-select');
+        if (sel && sel.options.length > 1) { sel.selectedIndex = 1; loadPresetList(); }
+        else { document.getElementById('preset-value-list').innerHTML = '<p class="hint">Select a column above.</p>'; }
+    }
+
+    function populatePresetColSelect() {
+        const sel = document.getElementById('preset-col-select');
+        if (!sel) return;
+        const eligible = COLUMNS.filter(c => !NON_PRESET_COLS.has(c));
+        sel.innerHTML = '<option value="">Select column...</option>' +
+            eligible.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    async function loadPresetList() {
+        const col = document.getElementById('preset-col-select').value;
+        const container = document.getElementById('preset-value-list');
+        if (!col || !CURRENT_TEMPLATE_ID) {
+            container.innerHTML = '<p class="hint">Select a column above.</p>'; return;
+        }
+        const res = await fetch(API + `/api/template/${CURRENT_TEMPLATE_ID}/preset_values`);
+        const all = await res.json();
+        const colVals = all.filter(v => v.column_name === col);
+        if (!colVals.length) {
+            container.innerHTML = '<p class="hint" style="padding:8px 0;">No predefined values yet for this column. Add one above.</p>';
+            return;
+        }
+        container.innerHTML = colVals.map(v => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 2px;border-bottom:1px solid var(--border);font-size:13px;">
+                <span>${v.value}</span>
+                <button class="btn btn-danger btn-sm" onclick="deletePresetValue(${v.id}, '${v.value.replace(/'/g,"\\'")}')">Remove</button>
+            </div>`).join('');
+    }
+
+    async function addPresetValue() {
+        const col = document.getElementById('preset-col-select').value;
+        const val = document.getElementById('preset-value-input').value.trim();
+        if (!col || !val) { alert('Select a column and enter a value.'); return; }
+        if (!CURRENT_TEMPLATE_ID) { alert('No template found for BIT project.'); return; }
+        const res = await fetch(API + `/api/superadmin/template/${CURRENT_TEMPLATE_ID}/preset_values`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Auth-Token': localStorage.getItem('token') },
+            body: JSON.stringify({ column_name: col, value: val })
+        });
+        const data = await res.json();
+        if (!data.ok) { alert(data.error || 'Failed to add value.'); return; }
+        document.getElementById('preset-value-input').value = '';
+        await fetchLookups();
+        loadPresetList();
+    }
+
+    async function deletePresetValue(id, valLabel) {
+        // Usage count check before delete
+        try {
+            const uc = await fetch(API + `/api/superadmin/preset_values/${id}/usage_count`,
+                { headers: { 'X-Auth-Token': localStorage.getItem('token') } });
+            const ucData = await uc.json();
+            if (ucData.count > 0) {
+                const ok = confirm(`Warning: ${ucData.count} existing record(s) use "${valLabel}".\nDeleting will not erase those records but the value won't appear in dropdowns anymore.\nProceed?`);
+                if (!ok) return;
+            }
+        } catch(e) { /* proceed without count if endpoint fails */ }
+        await fetch(API + `/api/superadmin/preset_values/${id}`,
+            { method: 'DELETE', headers: { 'X-Auth-Token': localStorage.getItem('token') } });
+        await fetchLookups();
+        loadPresetList();
+    }
+
+    // ── PHASE 2: LINKED RULES MODAL (BIT-scoped) ──
+    function openLinkedRulesModal() {
+        document.getElementById('linked-modal-context').textContent =
+            `BIT template — rules that auto-fill columns in the inline editor`;
+        document.getElementById('linked-rules-modal').classList.add('active');
+        loadLinkedRulesList();
+    }
+
+    async function loadLinkedRulesList() {
+        const container = document.getElementById('linked-rules-list');
+        if (!CURRENT_TEMPLATE_ID) {
+            container.innerHTML = '<p class="hint">No template found for BIT project.</p>'; return;
+        }
+        container.innerHTML = '<p class="hint">Loading...</p>';
+        const res = await fetch(API + `/api/template/${CURRENT_TEMPLATE_ID}/linked_rules`);
+        const rules = await res.json();
+        if (!rules.length) {
+            container.innerHTML = '<p class="hint" style="padding:8px 0;">No rules yet. Click "New Rule" to create one.</p>';
+            return;
+        }
+        container.innerHTML = rules.map(r => `
+            <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--surface);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="font-size:13px;">
+                        ${r.rule_name ? `<span style="font-weight:600;margin-right:10px;">${r.rule_name}</span>` : ''}
+                        <span style="background:#f3f4f6;padding:2px 7px;border-radius:4px;font-size:12px;margin-right:4px;">
+                            IF <strong>${r.if_column}</strong> ${r.operator} "${r.if_value}"
+                        </span>
+                        <span style="color:var(--muted);font-size:12px;">→</span>
+                        <span style="background:#fef3c7;padding:2px 7px;border-radius:4px;font-size:12px;margin-left:4px;">
+                            SET <strong>${r.then_column}</strong> = "${r.then_value}"
+                        </span>
+                    </div>
+                    <button class="btn btn-danger btn-sm" onclick="deleteLinkedRule(${r.id})">Delete</button>
+                </div>
+            </div>`).join('');
+    }
+
+    async function deleteLinkedRule(id) {
+        if (!confirm('Delete this rule?')) return;
+        await fetch(API + `/api/superadmin/linked_rules/${id}`,
+            { method: 'DELETE', headers: { 'X-Auth-Token': localStorage.getItem('token') } });
+        await fetchLinkedRules();
+        loadLinkedRulesList();
+    }
+
+    // ── RULE BUILDER ──────────────────────────────
+    const RB_EXCLUDED_COND_COLS = new Set([
+        "Report ID", "Date Performed", "Notes", "OS Build ID", "Test Combination",
+        "CPU Load %", "RAM Load %", "Storage Load %", "GPU Load %",
+        "CPU Max \u00b0C", "RAM Max \u00b0C", "SSD Max \u00b0C", "GPU Max \u00b0C"
+    ]);
+    const RB_EXCLUDED_ACT_COLS = new Set([
+        "Report ID", "Date Performed", "Notes", "OS Build ID", "Test Combination",
+        "CPU Load %", "RAM Load %", "Storage Load %", "GPU Load %",
+        "CPU Max \u00b0C", "RAM Max \u00b0C", "SSD Max \u00b0C", "GPU Max \u00b0C"
+    ]);
+
+    let rbCondIdx = 0, rbActIdx = 0;
+
+    function buildCondColOptions() {
+        return COLUMNS.filter(c => !RB_EXCLUDED_COND_COLS.has(c))
+            .map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function buildActColOptions() {
+        return COLUMNS.filter(c => !RB_EXCLUDED_ACT_COLS.has(c))
+            .map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    // Rebuild the value cell for a condition row based on selected field
+    function refreshRbCondVal(idx) {
+        const col = document.getElementById(`rb-cond-col-${idx}`)?.value;
+        const cell = document.getElementById(`rb-cond-val-cell-${idx}`);
+        if (!cell) return;
+        if (col && SYSTEM_LOOKUPS[col] && SYSTEM_LOOKUPS[col].length) {
+            const opts = SYSTEM_LOOKUPS[col].map(o =>
+                `<option value="${o.lookup_key}">${o.lookup_key}</option>`
+            ).join('');
+            cell.innerHTML = `<select id="rb-cond-val-${idx}" style="width:100%;min-width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;">
+                <option value="">Select value...</option>${opts}</select>`;
+        } else {
+            cell.innerHTML = `<input type="text" id="rb-cond-val-${idx}" placeholder="Value..."
+                style="width:100%;min-width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;">`;
+        }
+    }
+
+    function addRbCondition() {
+        const idx = rbCondIdx++;
+        const tbody = document.getElementById('rb-conditions');
+        const isFirst = tbody.rows.length === 0;
+        const tr = document.createElement('tr');
+        tr.id = `rb-cond-${idx}`;
+        tr.style.borderTop = '1px solid var(--border)';
+        tr.innerHTML = `
+            <td style="padding:6px 6px;text-align:center;">
+                <button type="button" onclick="addRbCondition()"
+                    style="background:none;border:none;cursor:pointer;color:#16a34a;font-size:16px;line-height:1;padding:0 2px;" title="Add row">+</button>
+                <button type="button" onclick="removeRbCondition('rb-cond-${idx}')"
+                    style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:14px;line-height:1;padding:0 2px;" title="Remove row">&#x2715;</button>
+            </td>
+            <td style="padding:6px 8px;">
+                ${isFirst
+                    ? '<span style="font-size:12px;color:var(--muted);font-style:italic;">—</span>'
+                    : `<select id="rb-cond-andor-${idx}" style="padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;">
+                        <option value="AND">And</option>
+                        <option value="OR">Or</option>
+                       </select>`
+                }
+            </td>
+            <td style="padding:6px 8px;">
+                <select id="rb-cond-col-${idx}" onchange="refreshRbCondVal(${idx})"
+                    style="width:100%;min-width:140px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;">
+                    <option value="">Select field...</option>
+                    ${buildCondColOptions()}
+                </select>
+            </td>
+            <td style="padding:6px 8px;">
+                <select id="rb-cond-op-${idx}" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;">
+                    <option value="equals">=</option>
+                    <option value="not_equals">&#x2260;</option>
+                </select>
+            </td>
+            <td id="rb-cond-val-cell-${idx}" style="padding:6px 8px;">
+                <input type="text" id="rb-cond-val-${idx}" placeholder="Select a field first..."
+                    style="width:100%;min-width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;">
+            </td>
+            <td style="padding:6px 6px;"></td>`;
+        tbody.appendChild(tr);
+    }
+
+    function removeRbCondition(rowId) {
+        const tbody = document.getElementById('rb-conditions');
+        if (tbody.rows.length <= 1) return; // keep at least one row
+        document.getElementById(rowId).remove();
+        // If only one row left, reset its And/Or cell to dash
+        if (tbody.rows.length === 1) {
+            const firstRow = tbody.rows[0];
+            const andorCell = firstRow.cells[1];
+            andorCell.innerHTML = '<span style="font-size:12px;color:var(--muted);font-style:italic;">—</span>';
+        }
+    }
+
+    // Rebuild the value cell for an action row based on selected column
+    function refreshRbActVal(idx) {
+        const col = document.getElementById(`rb-act-col-${idx}`)?.value;
+        const cell = document.getElementById(`rb-act-val-cell-${idx}`);
+        if (!cell) return;
+
+        // Phase 2: values come from SYSTEM_LOOKUPS (DB-driven preset_values only)
+        const allVals = (SYSTEM_LOOKUPS[col] || []).map(v => v.lookup_key);
+
+        if (!col) {
+            cell.innerHTML = `<input type="text" id="rb-act-val-${idx}" placeholder="Select a column first..."
+                style="flex:2;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" disabled>`;
+            return;
+        }
+
+        if (allVals.length) {
+            // Show dropdown of existing preset values + option to type a new one
+            const opts = allVals.map(v => `<option value="${v}">${v}</option>`).join('');
+            cell.innerHTML = `
+                <div style="flex:2;display:flex;flex-direction:column;gap:4px;">
+                    <select id="rb-act-val-${idx}" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+                        <option value="">Select value...</option>
+                        ${opts}
+                        <option value="__custom__">— Enter custom value —</option>
+                    </select>
+                    <div id="rb-act-custom-wrap-${idx}" style="display:none;gap:6px;align-items:center;">
+                        <input type="text" id="rb-act-custom-${idx}" placeholder="Custom value..."
+                            style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;">
+                        <button type="button" onclick="addPresetFromRule('${col}', ${idx})"
+                            style="font-size:11px;padding:4px 10px;background:var(--coral);color:white;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">
+                            + Add &amp; Save
+                        </button>
+                    </div>
+                </div>`;
+            // Hook the select to show custom input when "Enter custom" chosen
+            setTimeout(() => {
+                const sel = document.getElementById(`rb-act-val-${idx}`);
+                if (sel) sel.addEventListener('change', () => {
+                    const wrap = document.getElementById(`rb-act-custom-wrap-${idx}`);
+                    if (wrap) wrap.style.display = sel.value === '__custom__' ? 'flex' : 'none';
+                });
+            }, 0);
+        } else {
+            // No preset values for this column — plain text + shortcut to add one
+            cell.innerHTML = `
+                <div style="flex:2;display:flex;flex-direction:column;gap:4px;">
+                    <input type="text" id="rb-act-val-${idx}" placeholder="No presets — type a value..."
+                        style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+                    <span style="font-size:11px;color:var(--muted);">
+                        No predefined values for <strong>${col}</strong>.
+                        <button type="button" onclick="addPresetFromRuleText('${col}', ${idx})"
+                            style="background:none;border:none;color:var(--coral);cursor:pointer;font-size:11px;padding:0;text-decoration:underline;">
+                            Save typed value as preset
+                        </button>
+                    </span>
+                </div>`;
+        }
+    }
+
+    // Called when superadmin clicks "+ Add & Save" inside rule builder THEN SET
+    // Saves the custom value to the preset DB and refreshes the dropdown
+    async function addPresetFromRule(col, idx) {
+        const input = document.getElementById(`rb-act-custom-${idx}`);
+        const val = input ? input.value.trim() : '';
+        if (!col || !val) { alert('Enter a value first.'); return; }
+        if (!CURRENT_TEMPLATE_ID) { alert('No template found.'); return; }
+        await fetch(API + `/api/superadmin/template/${CURRENT_TEMPLATE_ID}/preset_values`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Auth-Token': localStorage.getItem('token') },
+            body: JSON.stringify({ column_name: col, value: val })
+        });
+        await fetchLookups();
+        refreshRbActVal(idx);
+        setTimeout(() => { const sel = document.getElementById(`rb-act-val-${idx}`); if (sel) sel.value = val; }, 0);
+    }
+
+    async function addPresetFromRuleText(col, idx) {
+        const input = document.getElementById(`rb-act-val-${idx}`);
+        const val = input ? input.value.trim() : '';
+        if (!col || !val) { alert('Type a value in the field first.'); return; }
+        if (!CURRENT_TEMPLATE_ID) { alert('No template found.'); return; }
+        await fetch(API + `/api/superadmin/template/${CURRENT_TEMPLATE_ID}/preset_values`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Auth-Token': localStorage.getItem('token') },
+            body: JSON.stringify({ column_name: col, value: val })
+        });
+        await fetchLookups();
+        refreshRbActVal(idx);
+        setTimeout(() => { const sel = document.getElementById(`rb-act-val-${idx}`); if (sel && sel.tagName === 'SELECT') sel.value = val; }, 0);
+    }
+
+    function addRbAction() {
+        const idx = rbActIdx++;
+        const container = document.getElementById('rb-actions');
+        const div = document.createElement('div');
+        div.id = `rb-act-${idx}`;
+        div.style.cssText = 'display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;';
+        div.innerHTML = `
+            <select id="rb-act-col-${idx}" onchange="refreshRbActVal(${idx})"
+                style="flex:1;min-width:140px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+                <option value="">Column...</option>
+                ${buildActColOptions()}
+            </select>
+            <span style="font-size:13px;color:var(--muted);font-weight:600;margin-top:8px;">=</span>
+            <div id="rb-act-val-cell-${idx}" style="flex:2;display:flex;">
+                <input type="text" id="rb-act-val-${idx}" placeholder="Select a column first..."
+                    style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" disabled>
+            </div>
+            <button type="button" onclick="document.getElementById('rb-act-${idx}').remove()"
+                style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:0 4px;margin-top:6px;" title="Remove">&#x2715;</button>`;
+        container.appendChild(div);
+    }
+
+    function openRuleBuilder(ruleId) {
+        rbCondIdx = 0; rbActIdx = 0;
+        document.getElementById('rb-name').value = '';
+        document.getElementById('rb-priority').value = '0';
+        document.getElementById('rb-conditions').innerHTML = '';
+        document.getElementById('rb-actions').innerHTML = '';
+        addRbCondition();
+        addRbAction();
+        document.getElementById('rule-builder-modal').classList.add('active');
+    }
+
+    function closeRuleBuilder() {
+        document.getElementById('rule-builder-modal').classList.remove('active');
+    }
+
+    async function saveRule() {
+        const name = document.getElementById('rb-name').value.trim();
+        if (!name) { alert("Rule name is required."); return; }
+        if (!CURRENT_TEMPLATE_ID) { alert("No template found for BIT project."); return; }
+
+        // Phase 2: linked_rules uses flat if_column/if_value/operator/then_column/then_value
+        // The rule builder allows multiple condition rows and action rows.
+        // We save each IF+THEN pair as a separate linked_rule for simplicity.
+        const condRows = Array.from(document.getElementById('rb-conditions').querySelectorAll('tr'));
+        const actionEls = Array.from(document.querySelectorAll('[id^="rb-act-col-"]'));
+
+        if (!condRows.length) { alert("Add at least one IF condition."); return; }
+        if (!actionEls.length) { alert("Add at least one THEN action."); return; }
+
+        // Collect valid conditions
+        const conditions = [];
+        condRows.forEach(row => {
+            const idx = row.id.replace('rb-cond-','');
+            const col = document.getElementById(`rb-cond-col-${idx}`)?.value;
+            const op  = document.getElementById(`rb-cond-op-${idx}`)?.value || 'equals';
+            const val = document.getElementById(`rb-cond-val-${idx}`)?.value?.trim();
+            if (col && val) conditions.push({ col, op, val });
+        });
+
+        // Collect valid actions
+        const actions = [];
+        actionEls.forEach(sel => {
+            const idx = sel.id.replace('rb-act-col-','');
+            const col = sel.value;
+            const valEl = document.getElementById(`rb-act-val-${idx}`);
+            let val = valEl?.value?.trim() || '';
+            if (val === '__custom__') val = document.getElementById(`rb-act-custom-${idx}`)?.value.trim() || '';
+            if (col && val) actions.push({ col, val });
+        });
+
+        if (!conditions.length) { alert("Add at least one valid IF condition (column + value required)."); return; }
+        if (!actions.length)    { alert("Add at least one valid THEN action (column + value required).");  return; }
+
+        // Save each condition×action combination as a separate linked_rule row
+        // (simplest mapping; one condition, one action per rule is most common)
+        const token = localStorage.getItem('token');
+        let saved = 0;
+        for (const cond of conditions) {
+            for (const act of actions) {
+                const res = await fetch(API + `/api/superadmin/template/${CURRENT_TEMPLATE_ID}/linked_rules`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
+                    body: JSON.stringify({
+                        rule_name: name,
+                        if_column: cond.col,
+                        if_value: cond.val,
+                        operator: cond.op,
+                        then_column: act.col,
+                        then_value: act.val,
+                        display_order: 0
+                    })
+                });
+                const d = await res.json();
+                if (d.ok) saved++;
+                else { alert(d.error || 'Failed to save rule.'); }
+            }
+        }
+
+        if (saved > 0) {
+            await fetchLinkedRules();
+            closeRuleBuilder();
+            loadLinkedRulesList();
+        }
+    }
+
+    // openModal — clean version, no manage-lookups-modal special case
+    function openModal(id) {
+        document.querySelectorAll(`#${id} input`).forEach(i => {
+            if (i.type !== 'file' && i.type !== 'checkbox') i.value = '';
+        });
+        document.getElementById(id).classList.add('active');
+    }
+
+    // ── BURN-IN DATA ──────────────────────────────
+    function debounceSearch() {
+        clearTimeout(SEARCH_TIMER);
+        SEARCH_TIMER = setTimeout(() => { CURRENT_PAGE = 1; loadBurnInData(); }, 350);
+    }
+
+    function changePerPage(val) { CURRENT_PER_PAGE = parseInt(val); CURRENT_PAGE = 1; loadBurnInData(); }
+
+    async function loadBurnInData() {
+        const search = document.getElementById('search-box')?.value || '';
+        const token = localStorage.getItem("token");
+        const headers = token ? { "X-Auth-Token": token } : {};
+        const url = `${API}/api/fy/${CURRENT_FY}/data?page=${CURRENT_PAGE}&per_page=${CURRENT_PER_PAGE}&search=${encodeURIComponent(search)}`;
+        const res = await fetch(url, { headers });
+        const result = await res.json();
+        BURN_IN_DATA = result.rows;
+        TOTAL_ROWS = result.total;
+
+        const isAdmin = document.body.classList.contains('is-admin') || document.body.classList.contains('is-superadmin');
+        const canDelete = document.body.classList.contains('can-delete');
+
+        document.getElementById('total-label').textContent = `${TOTAL_ROWS} total record${TOTAL_ROWS !== 1 ? 's' : ''}`;
+
+        document.getElementById('burn-in-body').innerHTML = BURN_IN_DATA.map(r => `
+            <tr id="row-${r.id}">
+                ${canDelete ? `<td class="cb-col"><input type="checkbox" class="row-cb" value="${r.id}" onchange="onRowCheck(${r.id}, this.checked)"></td>` : ''}
+                ${COLUMNS.map(c => `<td>${formatCell(c, r[c])}</td>`).join('')}
+                ${isAdmin ? `<td style="text-align:center;">
+                    <button class="btn btn-outline btn-icon" title="Edit" onclick="openEditor(${r.id})">${SVG_PENCIL}</button>
+                    <button class="btn btn-outline btn-icon btn-danger del-only" title="Delete" onclick="deleteRow(${r.id})">${SVG_TRASH}</button>
+                </td>` : ''}
+            </tr>`).join('');
+
+        renderPagination();
+        clearSelection();
+    }
+
+    function renderPagination() {
+        const totalPages = Math.ceil(TOTAL_ROWS / CURRENT_PER_PAGE);
+        if (totalPages <= 1) { document.getElementById('pagination').innerHTML = ''; return; }
+        let html = '';
+        const start = Math.max(1, CURRENT_PAGE - 2);
+        const end = Math.min(totalPages, CURRENT_PAGE + 2);
+        if (start > 1) html += `<button class="page-btn" onclick="goPage(1)">1</button>${start > 2 ? '<span style="padding:0 4px">…</span>' : ''}`;
+        for (let i = start; i <= end; i++) {
+            html += `<button class="page-btn ${i === CURRENT_PAGE ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+        }
+        if (end < totalPages) html += `${end < totalPages - 1 ? '<span style="padding:0 4px">…</span>' : ''}<button class="page-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
+        document.getElementById('pagination').innerHTML = html;
+    }
+
+    function goPage(p) { CURRENT_PAGE = p; loadBurnInData(); }
+
+    // ── SELECTION & BULK DELETE ────────────────────
+    function onRowCheck(id, checked) {
+        if (checked) SELECTED_IDS.add(id); else SELECTED_IDS.delete(id);
+        updateBulkBar();
+    }
+
+    function toggleSelectAll(checked) {
+        BURN_IN_DATA.forEach(r => {
+            if (checked) SELECTED_IDS.add(r.id); else SELECTED_IDS.delete(r.id);
+        });
+        document.querySelectorAll('.row-cb').forEach(cb => cb.checked = checked);
+        updateBulkBar();
+    }
+
+    function updateBulkBar() {
+        const bar = document.getElementById('bulk-bar');
+        const n = SELECTED_IDS.size;
+        bar.classList.toggle('visible', n > 0);
+        document.getElementById('bulk-count').textContent = `${n} row${n !== 1 ? 's' : ''} selected`;
+    }
+
+    function clearSelection() {
+        SELECTED_IDS.clear();
+        document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false);
+        const cb = document.getElementById('select-all-cb');
+        if (cb) cb.checked = false;
+        updateBulkBar();
+    }
+
+    async function bulkDelete() {
+        if (!confirm(`Permanently delete ${SELECTED_IDS.size} record(s)?`)) return;
+        await fetch(API + `/api/admin/fy/${CURRENT_FY}/rows/bulk`, {
+            method: "DELETE", headers: { "Content-Type": "application/json", "X-Auth-Token": localStorage.getItem("token") },
+            body: JSON.stringify({ ids: [...SELECTED_IDS] })
+        });
+        loadBurnInData();
+    }
+
+    // ── CELL FORMATTING ───────────────────────────
+    function formatCell(col, val) {
+        if (val === null || val === undefined || val === '') return '';
+        const cls = getCellClass(col, val);
+        if (cls) return `<span class="${cls}">${val}</span>`;
+        return val;
+    }
+
+    // ── INLINE EDITOR ─────────────────────────────
+    function buildInput(col, val = '') {
+        if (FORMULA_COLS.has(col)) return `<input type="text" class="inline-input formula-cell" id="i-${col}" value="${val}" readonly>`;
+        if (col === 'Date Performed') return `<input type="date" class="inline-input" id="i-${col}" value="${val ? val.split('T')[0].split(' ')[0] : ''}" onchange="calcFormulas(); evaluateRules();">`;
+        if (col === 'OS Version') {
+            const names = [...new Set(OS_BUILDS.map(o => o.os_name))];
+            const opts = names.map(n => `<option value="${n}" ${val===n?'selected':''}>${n}</option>`).join('');
+            return `<select class="inline-input" id="i-${col}" onchange="onOsVersionChange(this.value); evaluateRules();">${opts ? '<option value="">Select...</option>' + opts : '<option value="">No OS defined</option>'}</select>`;
+        }
+        if (col === 'OS Release') {
+            const curOs = document.getElementById('i-OS Version')?.value || '';
+            const releases = getOsReleases(curOs);
+            const opts = releases.map(r => `<option value="${r}" ${val===r?'selected':''}>${r}</option>`).join('');
+            return `<select class="inline-input" id="i-${col}" onchange="calcFormulas(); evaluateRules();"><option value="">Select...</option>${opts}</select>`;
+        }
+        if (SYSTEM_LOOKUPS[col]) {
+            const opts = SYSTEM_LOOKUPS[col].map(o => `<option value="${o.lookup_key}" ${val===o.lookup_key?'selected':''}>${o.lookup_key}</option>`).join('');
+            // formula-triggering cols keep calcFormulas; ALL selects also trigger evaluateRules
+            const formulaCols = ['CPU Test','RAM Test','Storage Test','Video Test','2D Graphics','3D Graphics','Is Retest'];
+            const oc = formulaCols.includes(col)
+                ? 'onchange="calcFormulas(); evaluateRules();"'
+                : 'onchange="evaluateRules();"';
+            return `<select class="inline-input" id="i-${col}" ${oc}><option value="">Select...</option>${opts}</select>`;
+        }
+        const dis = ['CPU Load %','RAM Load %','Storage Load %','GPU Load %','CPU Max °C','RAM Max °C','SSD Max °C','GPU Max °C','Retest Attempt'].includes(col) && val === 'NA' ? 'readonly class="inline-input disabled-cell"' : '';
+        return `<input type="text" class="inline-input" id="i-${col}" value="${val}" ${dis} onchange="evaluateRules();">`;
+    }
+
+    function onOsVersionChange(osName) {
+        const releases = getOsReleases(osName);
+        const sel = document.getElementById('i-OS Release');
+        if (sel) {
+            sel.innerHTML = '<option value="">Select...</option>' + releases.map(r => `<option value="${r}">${r}</option>`).join('');
+            // Auto-select first release if only one option exists
+            if (releases.length === 1) sel.value = releases[0];
+        }
+        calcFormulas(); // Now safe — OS Release select is already repopulated above
+    }
+
+    function openEditor(id = null) {
+        const tr = document.createElement('tr');
+        let data = {};
+        if (id) { data = BURN_IN_DATA.find(r => r.id === id); tr.id = `row-${id}`; }
+        const canDelete = document.body.classList.contains('can-delete');
+        tr.id = id ? `row-${id}` : 'row-new';
+        tr.innerHTML =
+            (canDelete ? '<td class="cb-col"></td>' : '') +
+            COLUMNS.map(c => `<td>${buildInput(c, data[c] || '')}</td>`).join('') +
+            `<td style="text-align:center;display:flex;gap:4px;justify-content:center;padding:7px 6px;">
+                <button class="btn btn-coral btn-icon" title="Save" onclick="saveInlineRow(${id || 'null'})">${SVG_FLOPPY}</button>
+                <button class="btn btn-outline btn-icon" title="Cancel" onclick="cancelEditor(${id || 'null'})">${SVG_CANCEL}</button>
+             </td>`;
+        if (id) document.getElementById(`row-${id}`).replaceWith(tr);
+        else document.getElementById('burn-in-body').insertBefore(tr, document.getElementById('burn-in-body').firstChild);
+    }
+
+    function cancelEditor(id = null) {
+        if (id) {
+            // Restore original read-only row
+            loadBurnInData();
+        } else {
+            const newRow = document.getElementById('row-new');
+            if (newRow) newRow.remove();
+        }
+    }
+
+    function calcFormulas() {
+        // OS Build ID — resolve from os_builds
+        const osV = document.getElementById('i-OS Version')?.value;
+        const osR = document.getElementById('i-OS Release')?.value;
+        if (osV && osR) {
+            document.getElementById('i-OS Build ID').value = getOsBuildId(osV, osR);
+        }
+
+        // Test Combination
+        const comboMap = { 'CPU Test':'CPU', 'RAM Test':'RAM', 'Storage Test':'Storage', 'Video Test':'Video', '2D Graphics':'2D', '3D Graphics':'3D' };
+        let combo = '';
+        Object.keys(comboMap).forEach(k => { if (document.getElementById(`i-${k}`)?.value === 'Yes') combo += comboMap[k] + ' '; });
+        document.getElementById('i-Test Combination').value = combo.trim();
+
+        // NA toggles for Load/Temp
+        [{ t:'CPU Test', l:'CPU Load %', c:'CPU Max °C' }, { t:'RAM Test', l:'RAM Load %', c:'RAM Max °C' }, { t:'Storage Test', l:'Storage Load %', c:'SSD Max °C' }, { t:'Video Test', l:'GPU Load %', c:'GPU Max °C' }].forEach(m => {
+            const isNo = document.getElementById(`i-${m.t}`)?.value === 'No';
+            [m.l, m.c].forEach(f => {
+                const el = document.getElementById(`i-${f}`); if (!el) return;
+                if (isNo) { el.value = 'NA'; el.classList.add('disabled-cell'); el.readOnly = true; }
+                else { el.classList.remove('disabled-cell'); el.readOnly = false; if (el.value === 'NA') el.value = ''; }
+            });
+        });
+
+        // Retest NA toggle
+        const isRetestNo = document.getElementById('i-Is Retest')?.value === 'No';
+        ['Retest Attempt', 'Retest Reason'].forEach(f => {
+            const el = document.getElementById(`i-${f}`); if (!el) return;
+            if (isRetestNo) { el.value = 'NA'; el.classList.add('disabled-cell'); el.readOnly = true; }
+            else { el.classList.remove('disabled-cell'); el.readOnly = false; if (el.value === 'NA') el.value = ''; }
+        });
+    }
+
+    async function saveInlineRow(id = null) {
+        const payload = {};
+        COLUMNS.forEach(c => { payload[c] = document.getElementById(`i-${c}`)?.value || ''; });
+        if (!payload['Date Performed'] || !payload['Technician']) { alert("Date and Technician are required."); return; }
+        const method = id ? "PUT" : "POST";
+        const endpoint = id ? `/api/admin/fy/${CURRENT_FY}/rows/${id}` : `/api/admin/fy/${CURRENT_FY}/rows`;
+        await fetch(API + endpoint, {
+            method, headers: { "Content-Type": "application/json", "X-Auth-Token": localStorage.getItem("token") },
+            body: JSON.stringify(payload)
+        });
+        loadBurnInData();
+    }
+
+    async function deleteRow(id) {
+        if (!confirm("Permanently delete this record?")) return;
+        await fetch(API + `/api/admin/fy/${CURRENT_FY}/rows/${id}`, { method: "DELETE", headers: { "X-Auth-Token": localStorage.getItem("token") } });
+        loadBurnInData();
+    }
+
+    // ── UPLOAD WITH CONFLICT DETECTION ────────────
+    async function uploadXlsx(input) {
+        if (!input.files[0]) return;
+        const fd = new FormData(); fd.append("file", input.files[0]);
+        const res = await fetch(API + `/api/admin/fy/${CURRENT_FY}/upload`, {
+            method: "POST", headers: { "X-Auth-Token": localStorage.getItem("token") }, body: fd
+        });
+        const data = await res.json();
+        input.value = ''; // Reset file input
+        if (!data.ok) { alert("Upload error: " + data.error); return; }
+
+        if (data.conflicts && data.conflicts.length > 0) {
+            PENDING_CONFLICTS = data.conflicts;
+            showConflictModal(data.inserted, data.conflicts);
+        } else {
+            alert(`Upload complete. ${data.inserted} row(s) inserted.`);
+            loadBurnInData();
+        }
+    }
+
+    function showConflictModal(inserted, conflicts) {
+        document.getElementById('conflict-summary').textContent =
+            `✅ ${inserted} new row(s) inserted. ⚠️ ${conflicts.length} conflict(s) detected — these already exist by Serial Number + Date. Select which to insert anyway:`;
+        document.getElementById('conflict-list').innerHTML = conflicts.map((c, i) =>
+            `<div class="conflict-row">
+                <input type="checkbox" class="conflict-cb" data-idx="${i}">
+                <div>
+                    <strong>${c.serial || '(no serial)'}</strong> — ${c.date}
+                    <span class="conflict-badge">${c.manufacturer} ${c.model}</span>
+                    <span style="color:var(--muted);font-size:11px;"> by ${c.technician}</span>
+                </div>
+             </div>`
+        ).join('');
+        openModal('conflict-modal');
+    }
+
+    function selectAllConflicts(checked) {
+        document.querySelectorAll('.conflict-cb').forEach(cb => cb.checked = checked);
+    }
+
+    async function forceInsertSelected() {
+        const selected = [];
+        document.querySelectorAll('.conflict-cb:checked').forEach(cb => {
+            selected.push(PENDING_CONFLICTS[parseInt(cb.getAttribute('data-idx'))].row_data);
+        });
+        if (selected.length === 0) { alert("No conflicts selected."); return; }
+        const res = await fetch(API + `/api/admin/fy/${CURRENT_FY}/upload/force`, {
+            method: "POST", headers: { "Content-Type": "application/json", "X-Auth-Token": localStorage.getItem("token") },
+            body: JSON.stringify({ rows: selected })
+        });
+        const data = await res.json();
+        closeModals();
+        alert(`${data.inserted} additional row(s) inserted.`);
+        loadBurnInData();
+    }
+
+    // ── EXPORTS ───────────────────────────────────
+    function downloadXlsx() {
+        const token = localStorage.getItem("token");
+        window.location = `${API}/api/fy/${CURRENT_FY}/download/xlsx?token=${token}`;
+    }
+    function downloadPdf() {
+        window.location = `${API}/api/fy/${CURRENT_FY}/download/pdf`;
+    }
+
+    // ── USER MANAGEMENT ───────────────────────────
+    function openUserModal(id = null) {
+        document.getElementById('u-id').value = id || '';
+        document.getElementById('u-modal-title').innerText = id ? "Edit User" : "Create User";
+        document.getElementById('u-pass-group').style.display = id ? "none" : "block";
+        document.getElementById('u-name').disabled = !!id;
+        if (id) {
+            const u = USER_LIST_CACHE.find(x => x.id === id);
+            document.getElementById('u-name').value = u.username;
+            document.getElementById('u-first').value = u.first_name || '';
+            document.getElementById('u-last').value = u.last_name || '';
+            document.getElementById('u-email').value = u.email || '';
+            document.getElementById('u-phone').value = u.phone || '';
+            document.getElementById('u-role').value = u.role;
+            document.getElementById('u-can-delete').checked = !!u.can_delete;
+        } else {
+            document.querySelectorAll('#add-user-modal input').forEach(i => { if (i.type !== 'checkbox') i.value = ''; });
+            document.getElementById('u-can-delete').checked = false;
+        }
+        openModal('add-user-modal');
+    }
+
+    async function loadUsers() {
+        const res = await fetch(API + "/api/superadmin/users", { headers: { "X-Auth-Token": localStorage.getItem("token") } });
+        USER_LIST_CACHE = await res.json();
+        document.getElementById('user-list').innerHTML = USER_LIST_CACHE.map(u => `<tr>
+            <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${u.is_active ? '#16a34a' : '#9ca3af'};margin-right:5px;"></span>${u.is_active ? 'Online' : 'Offline'}</td>
+            <td>${u.username}</td><td>${u.first_name} ${u.last_name}</td><td>${u.email || '—'}</td><td>${u.phone || '—'}</td>
+            <td><span style="background:#eee;padding:2px 8px;border-radius:4px;text-transform:capitalize;">${u.role}</span></td>
+            <td>${u.can_delete ? 'Yes' : 'No'}</td>
+            <td style="text-align:center;">
+                <button class="btn btn-outline btn-icon" title="Edit" onclick="openUserModal(${u.id})">${SVG_PENCIL}</button>
+                ${u.is_active && u.id !== MY_PROFILE.id ? `<button class="btn btn-outline btn-icon btn-danger" title="Force Logout" onclick="killSession('${u.username}')">${SVG_POWER}</button>` : ''}
+                ${u.id === MY_PROFILE.id ? '<span style="color:var(--muted);font-size:12px;margin-left:5px;">(You)</span>' : `<button class="btn btn-outline btn-icon btn-danger" title="Delete" onclick="deleteUser(${u.id})">${SVG_TRASH}</button>`}
+            </td></tr>`).join('');
+    }
+
+    async function saveUser() {
+        const id = document.getElementById('u-id').value;
+        const payload = { username: document.getElementById('u-name').value, role: document.getElementById('u-role').value, first_name: document.getElementById('u-first').value, last_name: document.getElementById('u-last').value, email: document.getElementById('u-email').value, phone: document.getElementById('u-phone').value, can_delete: document.getElementById('u-can-delete').checked };
+        if (!id) payload.password = document.getElementById('u-pass').value;
+        const res = await fetch(API + (id ? `/api/superadmin/users/${id}` : `/api/superadmin/users`), {
+            method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json", "X-Auth-Token": localStorage.getItem("token") },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json(); if (data.error) alert(data.error); else { closeModals(); loadUsers(); }
+    }
+
+    async function killSession(user) {
+        if (!confirm("Force logout this user globally?")) return;
+        await fetch(API + `/api/superadmin/users/${user}/kill`, { method: "POST", headers: { "X-Auth-Token": localStorage.getItem("token") } });
+        loadUsers();
+    }
+    async function deleteUser(id) {
+        if (!confirm("Delete user?")) return;
+        const res = await fetch(API + `/api/superadmin/users/${id}`, { method: "DELETE", headers: { "X-Auth-Token": localStorage.getItem("token") } });
+        const data = await res.json(); if (data.error) alert(data.error); loadUsers();
+    }
+
+    // ── LOGS ──────────────────────────────────────
+    async function loadLogs() {
+        const res = await fetch(API + "/api/superadmin/logs", { headers: { "X-Auth-Token": localStorage.getItem("token") } });
+        document.getElementById('logs-list').innerHTML = (await res.json()).map(l =>
+            `<tr><td style="color:var(--muted)">${new Date(l.timestamp).toLocaleString()}</td><td style="font-weight:600;">${l.username}</td><td>${l.action}</td></tr>`
+        ).join('');
+    }
+    async function purgeLogs(days) {
+        if (!confirm(`Delete all logs older than ${days} days?`)) return;
+        await fetch(API + `/api/superadmin/logs/purge/${days}`, { method: "DELETE", headers: { "X-Auth-Token": localStorage.getItem("token") } });
+        loadLogs();
+    }
+
+    // ── VAULT ─────────────────────────────────────
+    async function loadVault() {
+        const res = await fetch(API + "/api/vault", { headers: { "X-Auth-Token": localStorage.getItem("token") } });
+        document.getElementById('vault-list').innerHTML = (await res.json()).map(c =>
+            `<div class="card"><h4 style="color:var(--coral);">${c.app_name}</h4><p style="font-size:13px;color:var(--muted);">${c.portal_url}</p><p style="font-size:13px;margin:10px 0;">User: ${c.username}</p><button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText('${c.password}'); alert('Copied!')">Copy Password</button></div>`
+        ).join('');
+    }
+    async function saveVault() {
+        await fetch(API + "/api/vault", {
+            method: "POST", headers: { "Content-Type": "application/json", "X-Auth-Token": localStorage.getItem("token") },
+            body: JSON.stringify({ app_name: document.getElementById('v-app').value, portal_url: document.getElementById('v-url').value, username: document.getElementById('v-user').value, password: document.getElementById('v-pass').value })
+        });
+        closeModals(); loadVault();
+    }
+
+    init();
+</script>
+</body>
+</html>
